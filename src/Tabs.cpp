@@ -340,12 +340,117 @@ static LRESULT CALLBACK TabBarParentProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM 
     return DefSubclassProc(hwnd, msg, wp, lp);
 }
 
+BOOL CALLBACK EnumChildProc(HWND hwnd, LPARAM lp)
+{
+	char name[101];
+	GetClassNameA(hwnd, (char*)name, 100);
+	printf("0x%lX   ", (unsigned long)hwnd);
+	printf(name);
+	printf("\n");
+	return TRUE;
+}
+
+HWND gHWND = nullptr;
+BOOL CALLBACK EnumWindowsProcMy(HWND hwnd, LPARAM lParam)
+{
+	DWORD lpdwProcessId;
+	GetWindowThreadProcessId(hwnd, &lpdwProcessId);
+	if (lpdwProcessId == lParam)
+	{
+		char name[101];
+		GetClassNameA(hwnd, (char*)name, 100);
+		printf("0x%lX   ", (unsigned long)hwnd);
+		printf(name);
+		printf("\n");
+		if (strstr(name, "SUMATRA_PDF_FRAME")) {
+			gHWND = hwnd;
+		}
+	}
+	return TRUE;
+}
+
+bool drag(HWND hwnd, LPARAM lp, TabInfo *tab)
+{
+	int b;
+	POINT pt = { GET_X_LPARAM(lp), GET_Y_LPARAM(lp) };
+	ClientToScreen(hwnd, &pt);
+	printf("x: %li, y: %li\n", pt.x, pt.y);
+
+	volatile HWND h = WindowFromPoint(pt);
+	
+
+	DWORD thisPID, thatPID;
+	GetWindowThreadProcessId(hwnd, &thisPID);
+	GetWindowThreadProcessId(h, &thatPID);
+
+	//dragged into active window
+	if (thisPID == thatPID) {
+		return false;
+	}
+	
+	gHWND = nullptr;
+	EnumWindows(EnumWindowsProcMy, thatPID);
+
+	WCHAR *filePath = tab->filePath;
+	WCHAR fullpath[MAX_PATH];
+	GetFullPathName(filePath, dimof(fullpath), fullpath, nullptr);
+
+	//was dragged into another sumatra window
+	if (gHWND)
+	{
+		str::Str<WCHAR> cmd;
+		cmd.AppendFmt(L"[" L"Open" L"(\"%s\", 0, 1, 0)]", fullpath);
+
+		COPYDATASTRUCT cds = { 0x44646557 /* DdeW */, (DWORD)(cmd.Size() + 1) * sizeof(WCHAR), cmd.Get() };
+		LRESULT res = SendMessage(gHWND, WM_COPYDATA, 0, (LPARAM)&cds);
+
+		if (res)
+			printf("success");
+	}
+	else //was dragged elsewhere, make new window
+	{
+		HMONITOR hMon = MonitorFromPoint(pt, MONITOR_DEFAULTTONEAREST);
+
+		wchar_t arg[1000];
+		wsprintf(arg, L"-new-instance -monitor %lu %s", (unsigned long)hMon, fullpath);
+		//std::wstring arg = L"-new-instance -fullscreen -monitor ";
+		//arg.append(hMon);
+		//arg.append(fullpath);
+		
+		printf("Monitor: %li\n", (long)hMon);
+		SHELLEXECUTEINFO sh;
+		sh.cbSize = sizeof(SHELLEXECUTEINFO);
+		sh.fMask = SEE_MASK_HMONITOR | SEE_MASK_NOCLOSEPROCESS;
+		sh.hwnd = NULL;
+		sh.lpVerb = L"open";
+		sh.lpFile = GetExePath();
+		sh.lpParameters = arg;
+		sh.lpDirectory = NULL;
+		sh.nShow = SW_MAXIMIZE;
+		sh.hInstApp = NULL;
+		sh.lpIDList = NULL;
+		sh.lpClass = NULL;
+		sh.hkeyClass = NULL;
+		sh.dwHotKey = NULL;
+		sh.hMonitor = hMon;
+		sh.hProcess = NULL;
+
+		//ShellExecuteEx(&sh);
+		//MoveWindow(sh.hProcess, 0, 0, 1000, 1000);
+		ShellExecute(NULL, L"open", GetExePath(), arg, NULL, SW_MAXIMIZE);
+		
+	}
+	return true;
+}
+
 static LRESULT CALLBACK TabBarProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UINT_PTR uIdSubclass,
                                    DWORD_PTR dwRefData) {
     PAINTSTRUCT ps;
     HDC hdc;
     int index;
     LPTCITEM tcs;
+
+	WindowInfo *win = (WindowInfo*)dwRefData;
 
     UNUSED(uIdSubclass);
     UNUSED(dwRefData);
@@ -365,7 +470,7 @@ static LRESULT CALLBACK TabBarProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UI
             break;
 
         case TCM_INSERTITEM:
-            index = (int)wp;
+			index = (int)wp;
             tcs = (LPTCITEM)lp;
             CrashIf(!(TCIF_TEXT & tcs->mask));
             tab->Insert(index, tcs->pszText);
@@ -455,6 +560,7 @@ static LRESULT CALLBACK TabBarProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UI
             return 0;
 
         case WM_MOUSEMOVE: {
+			printf("m\n");
             tab->mouseCoordinates = lp;
 
             if (0xff != wp) {
@@ -492,6 +598,7 @@ static LRESULT CALLBACK TabBarProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UI
 
         case WM_LBUTTONDOWN:
             bool inX;
+			printf("l down\n");
             tab->nextTab = tab->IndexFromPoint(GET_X_LPARAM(lp), GET_Y_LPARAM(lp), &inX);
             if (inX) {
                 // send request to close the tab
@@ -510,6 +617,8 @@ static LRESULT CALLBACK TabBarProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UI
             return 0;
 
         case WM_LBUTTONUP:
+			printf("l up\n");
+
             if (tab->xClicked != -1) {
                 // send notification that the tab is closed
                 WindowInfo* win = FindWindowInfoByHwnd(hwnd);
@@ -521,12 +630,31 @@ static LRESULT CALLBACK TabBarProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UI
             if (tab->isDragging) {
                 tab->isDragging = false;
                 ReleaseCapture();
+
+				int clicked = tab->nextTab;
+				if ((clicked != -1) && drag(hwnd, lp, win->currentTab))
+				{
+					if (tab->Count() == 1)
+					{
+						if (MayCloseWindow(win)) {
+							CloseWindow(win, true);
+						}
+					}
+					else
+					{
+						uitask::Post([=] { TabNotification(win, T_CLOSE, clicked, -1); });
+						tab->Invalidate(clicked);
+						tab->xClicked = -1;
+					}
+				}
             }
             return 0;
 
         case WM_MBUTTONDOWN:
             // middle-clicking unconditionally closes the tab
+			if(0)
             {
+				//printf("m button down\n");
                 tab->nextTab = tab->IndexFromPoint(GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
                 // send request to close the tab
                 WindowInfo* win = FindWindowInfoByHwnd(hwnd);
@@ -536,7 +664,10 @@ static LRESULT CALLBACK TabBarProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UI
             return 0;
 
         case WM_MBUTTONUP:
+			//printf("m button up\n");
+			tab->xClicked = tab->IndexFromPoint(GET_X_LPARAM(lp), GET_Y_LPARAM(lp));
             if (tab->xClicked != -1) {
+				//printf("	xClicked\n");
                 // send notification that the tab is closed
                 WindowInfo* win = FindWindowInfoByHwnd(hwnd);
                 int clicked = tab->xClicked;
@@ -544,6 +675,10 @@ static LRESULT CALLBACK TabBarProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp, UI
                 tab->Invalidate(clicked);
                 tab->xClicked = -1;
             }
+			else
+			{
+				//printf("	xClicked = -1\n");
+			}
             return 0;
 
         case WM_ERASEBKGND:
@@ -791,8 +926,8 @@ void UpdateTabWidth(WindowInfo* win) {
         ShowTabBar(win, true);
         ClientRect rect(win->hwndTabBar);
         SizeI tabSize = GetTabSize(win->hwndFrame);
-        if (tabSize.dx > (rect.dx - 3) / count)
-            tabSize.dx = (rect.dx - 3) / count;
+        if (tabSize.dx > (rect.dx - 30) / count)
+            tabSize.dx = (rect.dx - 30) / count;
         TabCtrl_SetItemSize(win->hwndTabBar, tabSize.dx, tabSize.dy);
     } else {
         ShowTabBar(win, false);

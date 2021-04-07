@@ -238,7 +238,7 @@
     <ClCompile>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
-      <TreatWarningAsError>true</TreatWarningAsError>
+      <TreatWarningAsError>false</TreatWarningAsError>
       <DisableSpecificWarnings>4127;4324;4458;4800;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>WIN32;_WIN32;_CRT_SECURE_NO_WARNINGS;WINVER=0x0501;_WIN32_WINNT=0x0501;_HAS_EXCEPTIONS=0;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\src;..\src\utils;..\src\wingui;..\src\mui;..\mupdf\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
@@ -368,6 +368,24 @@
     <ProjectReference Include="libwebp.vcxproj">
       <Project>{0A466F79-7625-EE14-7F3D-79EBEB9B5476}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\src\PdfDoc.ico" />
+    <Image Include="..\src\reloading.bmp" />
+    <Image Include="..\src\SumatraPDF-smaller.ico" />
+    <Image Include="..\src\toolbar_11.bmp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="..\src\EbookWinDesc.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Manifest Include="..\src\SumatraPDF.exe.manifest" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\src\dragcursor.cur" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\src\resource.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

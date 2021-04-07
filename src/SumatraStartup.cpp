@@ -541,6 +541,18 @@ static void ShutdownCommon() {
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 }
 
+void MoveWindowToMonitor(HWND hwnd, HMONITOR hMon)
+{
+	MONITORINFO info;
+	info.cbSize = sizeof(MONITORINFO);
+	GetMonitorInfo(hMon, &info);
+	//GetWindowRect(hwnd, &rc_win);
+
+	// Move the window to the new coords.
+	SetWindowPos(hwnd, NULL, info.rcMonitor.left, info.rcMonitor.top, (info.rcMonitor.right-info.rcMonitor.left), (info.rcMonitor.bottom-info.rcMonitor.top),
+		SWP_NOZORDER | SWP_NOACTIVATE);
+}
+
 int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR cmdLine, _In_ int nCmdShow)
 {
     UNUSED(hPrevInstance); UNUSED(cmdLine); UNUSED(nCmdShow);
@@ -633,7 +645,7 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     system("pause");
     goto Exit;
 #endif
-
+	//i.showConsole = 1;
     if (i.showConsole) {
         RedirectIOToConsole();
         fz_redirect_dll_io_to_console();
@@ -675,21 +687,43 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
         goto Exit;
     }
 
+
+	//gGlobalPrefs->useTabs = true;
+	//gGlobalPrefs->reuseInstance = true;//true: this instance is allowed to open new pdfs in the future
+	//i.newInstance forces creation of new instance. should be false by defualt. True when Ctrl-N pressed. Overridden to true if no input file
+	//or use master slave config where only master has reuse flag set; launching with reuse flag false forces new instance. Downside is all new pdfs will open in master
+
+	//useTabs: open pdf in same window, or new window if none available. Should be true by default (because tabs are cool)
+	//reuseInstance: if false, will force open a new window. Should be true by default so double-clicking a pdf opens it in an existing window
+
+	//Henceforth, assume useTabs is true
+	//To open a new window, sumatra must be invoked such that reuseInstance is overriden to false
+	//TODO: open new pdfs in whichever window was last active
+
+	if (!i.fileNames.Count()) {
+		i.newInstance = true;
+	}
+
     HANDLE hMutex = nullptr;
-    HWND hPrevWnd = nullptr;
+    volatile HWND hPrevWnd = nullptr;
     if (i.printDialog || i.stressTestPath || gPluginMode) {
         // TODO: pass print request through to previous instance?
     }
     else if (i.reuseDdeInstance) {
         hPrevWnd = FindWindow(FRAME_CLASS_NAME, nullptr);
     }
-    else if (gGlobalPrefs->reuseInstance || gGlobalPrefs->useTabs) {
-        hPrevWnd = FindPrevInstWindow(&hMutex);
-    }
-    if (hPrevWnd) {
+	else if (gGlobalPrefs->reuseInstance) {
+		//creates a unique ID so that this process can be found later
+		hPrevWnd = FindPrevInstWindow(&hMutex);
+	}
+    //else if (gGlobalPrefs->reuseInstance || gGlobalPrefs->useTabs) {
+
+	//if we dont want to open in a new instance and a previous instance exists
+    if (!i.newInstance && hPrevWnd) {
         for (size_t n = 0; n < i.fileNames.Count(); n++) {
             OpenUsingDde(hPrevWnd, i.fileNames.At(n), i, 0 == n);
         }
+		//this bit cant happen anymore. opening no files forces a new instance
         if (0 == i.fileNames.Count()) {
             win::ToForeground(hPrevWnd);
         }
@@ -780,6 +814,12 @@ int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
     }
     // call this once it's clear whether Perm_SavePreferences has been granted
     prefs::RegisterForFileChanges();
+
+	if (i.monitor)
+	{
+				MoveWindowToMonitor(win->hwndFrame, (HMONITOR)i.monitor);
+	}
+
 
     // Change current directory for 2 reasons:
     // * prevent dll hijacking (LoadLibrary first loads from current directory

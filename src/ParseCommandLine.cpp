@@ -173,6 +173,8 @@ static const char* argNames =
     "restrict\0"
     "invertcolors\0"
     "invert-colors\0"
+	"new-instance\0"
+	"monitor\0"
     "presentation\0"
     "fullscreen\0"
     "console\0"
@@ -220,6 +222,8 @@ enum {
     Restrict,
     InvertColors1,
     InvertColors2,
+	NewInstance,
+	Monitor,
     Presentation,
     Fullscreen,
     Console,
@@ -328,14 +332,20 @@ void CommandLineInfo::ParseCommandLine(const WCHAR* cmdLine) {
             handle_string_param(destName);
         } else if (is_arg_with_param(Page)) {
             handle_int_param(pageNumber);
+		} else if (is_arg_with_param(Monitor)) {
+			handle_int_param(monitor);
         } else if (Restrict == arg) {
             restrictedUse = true;
-        } else if (InvertColors1 == arg || InvertColors2 == arg) {
-            // -invertcolors is for backwards compat (was used pre-1.3)
-            // -invert-colors is for consistency
-            // -invert-colors used to be a shortcut for -set-color-range 0xFFFFFF 0x000000
-            // now it non-permanently swaps textColor and backgroundColor
-            invertColors = true;
+		}
+		else if (InvertColors1 == arg || InvertColors2 == arg) {
+			// -invertcolors is for backwards compat (was used pre-1.3)
+			// -invert-colors is for consistency
+			// -invert-colors used to be a shortcut for -set-color-range 0xFFFFFF 0x000000
+			// now it non-permanently swaps textColor and backgroundColor
+			invertColors = true;
+		}
+		else if (NewInstance == arg) {
+			newInstance = true;
         } else if (Presentation == arg) {
             enterPresentation = true;
         } else if (Fullscreen == arg) {

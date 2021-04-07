@@ -41,6 +41,8 @@ class CommandLineInfo {
     AutoFreeW appdataDir;
     AutoFreeW inverseSearchCmdLine;
     bool invertColors;
+	bool newInstance;
+	int monitor;
 
     // stress-testing related
     AutoFreeW stressTestPath;
@@ -95,6 +97,8 @@ class CommandLineInfo {
           appdataDir(nullptr),
           inverseSearchCmdLine(nullptr),
           invertColors(false),
+		  newInstance(false),
+		  monitor(0),
           crashOnOpen(false) {}
 
     ~CommandLineInfo() {}

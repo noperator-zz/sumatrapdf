@@ -163,7 +163,6 @@
 #define IDC_TABBAR                      1110
 #define IDB_TOOLBAR                     2000
 #define IDB_RELOADING_CUE               2010
-// TODO: which of these are (still) needed?
 #define IDT_FILE_NEW                    3000
 #define IDT_FILE_OPEN                   3001
 #define IDT_FILE_METAPATH               3002
@@ -195,15 +194,16 @@
 #define IDD_EBOOK_WIN_DESC              3051
 #define IDD_PUBLIC_APP_KEY              3060
 #define IDC_SUMATRAPDF                  4000
+#define IDM_NEW                         32771
 #define IDC_STATIC                      -1
 
 // Next default values for new objects
-//
+// 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        141
-#define _APS_NEXT_COMMAND_VALUE         32771
+#define _APS_NEXT_RESOURCE_VALUE        143
+#define _APS_NEXT_COMMAND_VALUE         32772
 #define _APS_NEXT_CONTROL_VALUE         1080
 #define _APS_NEXT_SYMED_VALUE           110
 #endif

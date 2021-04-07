@@ -57,7 +57,10 @@ static ToolbarButtonInfo gToolbarButtons[] = {
     { -1,  IDM_FIND_FIRST,        nullptr,                   0 },
     { 8,   IDM_FIND_PREV,         _TRN("Find Previous"),  0 },
     { 9,   IDM_FIND_NEXT,         _TRN("Find Next"),      0 },
-    { 10,  IDM_FIND_MATCH,        _TRN("Match Case"),     0 },
+	{ 10,  IDM_FIND_MATCH,        _TRN("Match Case"),     0 },
+	{ -1,  0,                     nullptr,                   0 },
+	{ 13,  IDM_GOTO_NAV_BACK,     _TRN("Go Back"),		  0 },
+	{ 14,  IDM_GOTO_NAV_FORWARD,  _TRN("Go Forward"),     0 },
 };
 
 #define TOOLBAR_BUTTONS_COUNT dimof(gToolbarButtons)
@@ -118,6 +121,11 @@ static bool IsToolbarButtonEnabled(WindowInfo *win, int buttonNo)
         return win->ctrl->CurrentPageNo() < win->ctrl->PageCount();
     case IDM_GOTO_PREV_PAGE:
         return win->ctrl->CurrentPageNo() > 1;
+
+	case IDM_GOTO_NAV_BACK:
+		return win->ctrl->CanNavigate(-1);
+	case IDM_GOTO_NAV_FORWARD:
+		return win->ctrl->CanNavigate(1);
 
     default:
         return true;
@@ -678,7 +686,7 @@ void CreateToolbar(WindowInfo *win)
     if (!res)
         rc.left = rc.right = rc.top = rc.bottom = 0;
 
-    DWORD  reBarStyle = WS_REBAR | WS_VISIBLE;
+	DWORD  reBarStyle = WS_REBAR | WS_VISIBLE;
     win->hwndReBar = CreateWindowEx(WS_EX_TOOLWINDOW, REBARCLASSNAME, nullptr, reBarStyle,
                                     0, 0, 0, 0, win->hwndFrame, (HMENU)IDC_REBAR, GetModuleHandle(nullptr), nullptr);
 
@@ -690,8 +698,8 @@ void CreateToolbar(WindowInfo *win)
 
     REBARBANDINFO rbBand;
     rbBand.cbSize  = sizeof(REBARBANDINFO);
-    rbBand.fMask   = /*RBBIM_COLORS | RBBIM_TEXT | RBBIM_BACKGROUND | */
-                   RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE /*| RBBIM_SIZE*/;
+	rbBand.fMask = /*RBBIM_COLORS | RBBIM_TEXT | RBBIM_BACKGROUND | */
+					RBBIM_STYLE | RBBIM_CHILD | RBBIM_CHILDSIZE /*| RBBIM_SIZE*/;
     rbBand.fStyle  = /*RBBS_CHILDEDGE |*//* RBBS_BREAK |*/ RBBS_FIXEDSIZE /*| RBBS_GRIPPERALWAYS*/;
     if (theme::IsAppThemed())
         rbBand.fStyle |= RBBS_CHILDEDGE;

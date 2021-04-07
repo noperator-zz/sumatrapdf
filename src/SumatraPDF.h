@@ -122,6 +122,7 @@ bool  FrameOnKeydown(WindowInfo* win, WPARAM key, LPARAM lparam, bool inTextfiel
 void  ReloadDocument(WindowInfo *win, bool autorefresh=false);
 void  OnMenuViewFullscreen(WindowInfo* win, bool presentation=false);
 void  RelayoutWindow(WindowInfo *win);
+//void  OnMenuNew(WindowInfo *win);
 
 WindowInfo* FindWindowInfoByHwnd(HWND hwnd);
 // note: background tabs are only searched if focusTab is true

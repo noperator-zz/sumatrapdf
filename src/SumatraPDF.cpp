@@ -2615,6 +2615,19 @@ static UINT_PTR CALLBACK FileOpenHook(HWND hDlg, UINT uiMsg, WPARAM wParam, LPAR
 }
 #endif
 
+void OnMenuNew(WindowInfo& win)
+{
+	//open new instance (with selected pdf if there is one)
+	//win->currentTab->filePath
+
+	std::wstring arg = L"-new-instance ";
+	if (win.currentTab) {
+		arg.append(win.currentTab->filePath);
+	}
+
+	ShellExecute(NULL, L"open", GetExePath(), arg.c_str(), NULL, SW_SHOW);
+}
+
 void OnMenuOpen(WindowInfo& win)
 {
     if (!HasPermission(Perm_DiskAccess)) return;
@@ -4117,6 +4130,9 @@ static LRESULT FrameOnCommand(WindowInfo *win, HWND hwnd, UINT msg, WPARAM wPara
             ToggleFavorites(win);
             break;
 
+		case IDM_NEW:
+			OnMenuNew(*win);
+			break;
         default:
             return DefWindowProc(hwnd, msg, wParam, lParam);
     }
@@ -4393,3 +4409,5 @@ void ShowCrashHandlerMessage()
     // TODO: maybe launch notepad with crash report?
     MessageBoxA(nullptr, "We're sorry, SumatraPDF crashed.", "SumatraPDF crashed", MB_ICONERROR | MB_OK | MbRtlReadingMaybe());
 }
+
+
